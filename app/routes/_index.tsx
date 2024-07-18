@@ -1,4 +1,4 @@
-import type { MetaFunction } from '@remix-run/node'
+import { type MetaFunction } from '@remix-run/node'
 import { Link } from '@remix-run/react'
 
 export const meta: MetaFunction = () => {
@@ -22,11 +22,6 @@ export default function Index() {
       </div>
       <div className="p-8">
         <ul className="flex flex-col gap-2">
-          <li>
-            <Link to="/counter" className={linkStyle}>
-              Counter
-            </Link>
-          </li>
           <li>
             <Link to="/error" className={linkStyle}>
               Test Error Handling

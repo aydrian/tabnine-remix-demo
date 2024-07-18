@@ -1,7 +1,7 @@
 import { type SVGProps } from 'react'
-import { cn } from '~/utils/tailwind'
 import { type IconName } from './icons/name'
 import href from './icons/sprite.svg?url'
+import { cn } from '~/utils/tailwind'
 
 export { href }
 export { IconName }

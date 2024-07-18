@@ -1,13 +1,7 @@
+import { PrismaClient } from '@prisma/client'
 import { singleton } from './singleton.server'
 
-const db = singleton('db', () => ({
-  _counter: 0,
-  getCount() {
-    return this._counter
-  },
-  increment() {
-    this._counter++
-  },
-}))
+const prisma = singleton('prisma', () => new PrismaClient())
+void prisma.$connect()
 
-export { db }
+export { prisma }

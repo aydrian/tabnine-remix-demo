@@ -1,5 +1,7 @@
 node_modules
 
+/prisma/data.db
+
 /.cache
 /build
 /public/build
