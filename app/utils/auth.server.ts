@@ -39,3 +39,23 @@ export const requireAuth = async (request: Request) => {
     failureRedirect: '/login',
   })
 }
+
+export async function createUser({
+  name,
+  email,
+  password,
+}: {
+  name: string
+  email: string
+  password: string
+}) {
+  const hashedPassword = await bcrypt.hash(password, 10)
+
+  return prisma.user.create({
+    data: {
+      name,
+      email,
+      password: hashedPassword,
+    },
+  })
+}

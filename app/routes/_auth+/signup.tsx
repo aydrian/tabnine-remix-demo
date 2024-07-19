@@ -2,18 +2,24 @@ import { getFormProps, getInputProps, useForm } from '@conform-to/react'
 import { parseWithZod } from '@conform-to/zod'
 import { json, type LoaderFunction, type ActionFunction } from '@remix-run/node'
 import { Form, Link, useActionData, useNavigation } from '@remix-run/react'
-import { AuthorizationError } from 'remix-auth'
 import { z } from 'zod'
 import { Alert, AlertDescription } from '~/components/ui/alert'
 import { Button } from '~/components/ui/button'
 import { Input } from '~/components/ui/input'
 import { Label } from '~/components/ui/label'
-import { authenticator } from '~/utils/auth.server'
+import { authenticator, createUser } from '~/utils/auth.server'
 
-const schema = z.object({
-  email: z.string().email('Invalid email address'),
-  password: z.string().min(8, 'Password must be at least 8 characters'),
-})
+const schema = z
+  .object({
+    name: z.string().min(1, 'Name is required'),
+    email: z.string().email('Invalid email address'),
+    password: z.string().min(8, 'Password must be at least 8 characters'),
+    confirmPassword: z.string().min(8, 'Please confirm your password'),
+  })
+  .refine(data => data.password === data.confirmPassword, {
+    message: "Passwords don't match",
+    path: ['confirmPassword'],
+  })
 
 export const loader: LoaderFunction = async ({ request }) => {
   return await authenticator.isAuthenticated(request, {
@@ -29,21 +35,26 @@ export const action: ActionFunction = async ({ request }) => {
     return json(submission.reply())
   }
 
+  const { name, email, password } = submission.value
+
   try {
+    // Create the user
+    await createUser({ name, email, password })
+
+    // Log the user in
     return await authenticator.authenticate('user-pass', request, {
       successRedirect: '/protected',
-      throwOnError: true,
+      failureRedirect: '/signup',
       context: { formData },
     })
   } catch (error: unknown) {
-    if (error instanceof AuthorizationError) {
-      return json(submission.reply({ formErrors: [error.message] }))
-    }
-    throw error
+    const errorMessage =
+      error instanceof Error ? error.message : 'An unknown error occurred'
+    return json(submission.reply({ formErrors: [errorMessage] }))
   }
 }
 
-export default function Login() {
+export default function SignUp() {
   const lastResult = useActionData<typeof action>()
   const navigation = useNavigation()
   const [form, fields] = useForm({
@@ -67,6 +78,15 @@ export default function Login() {
       {...getFormProps(form)}
     >
       <div className="space-y-2">
+        <Label htmlFor={fields.name.id}>Name</Label>
+        <Input {...getInputProps(fields.name, { type: 'text' })} />
+        {fields.name.errors && (
+          <Alert variant="destructive">
+            <AlertDescription>{fields.name.errors}</AlertDescription>
+          </Alert>
+        )}
+      </div>
+      <div className="space-y-2">
         <Label htmlFor={fields.email.id}>Email</Label>
         <Input {...getInputProps(fields.email, { type: 'email' })} />
         {fields.email.errors && (
@@ -84,6 +104,17 @@ export default function Login() {
           </Alert>
         )}
       </div>
+      <div className="space-y-2">
+        <Label htmlFor={fields.confirmPassword.id}>Confirm Password</Label>
+        <Input
+          {...getInputProps(fields.confirmPassword, { type: 'password' })}
+        />
+        {fields.confirmPassword.errors && (
+          <Alert variant="destructive">
+            <AlertDescription>{fields.confirmPassword.errors}</AlertDescription>
+          </Alert>
+        )}
+      </div>
       {form.errors && (
         <Alert variant="destructive">
           <AlertDescription>{form.errors}</AlertDescription>
@@ -94,12 +125,12 @@ export default function Login() {
         className="w-full"
         disabled={navigation.state === 'submitting'}
       >
-        {navigation.state === 'submitting' ? 'Logging in...' : 'Log In'}
+        {navigation.state === 'submitting' ? 'Signing up...' : 'Sign Up'}
       </Button>
       <div className="mt-2 text-center text-sm text-gray-500">
-        Don't have an account?{' '}
-        <Link className="text-red-700 underline" to="/signup">
-          Sign up
+        Already have an account?{' '}
+        <Link className="text-red-700" to="/login">
+          Log in
         </Link>
       </div>
     </Form>
