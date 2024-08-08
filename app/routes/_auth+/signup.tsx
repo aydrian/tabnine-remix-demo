@@ -23,7 +23,7 @@ const schema = z
 
 export const loader: LoaderFunction = async ({ request }) => {
   return await authenticator.isAuthenticated(request, {
-    successRedirect: '/protected',
+    successRedirect: '/home',
   })
 }
 
@@ -43,7 +43,7 @@ export const action: ActionFunction = async ({ request }) => {
 
     // Log the user in
     return await authenticator.authenticate('user-pass', request, {
-      successRedirect: '/protected',
+      successRedirect: '/home',
       failureRedirect: '/signup',
       context: { formData },
     })

@@ -17,7 +17,7 @@ const schema = z.object({
 
 export const loader: LoaderFunction = async ({ request }) => {
   return await authenticator.isAuthenticated(request, {
-    successRedirect: '/protected',
+    successRedirect: '/home',
   })
 }
 
@@ -31,7 +31,7 @@ export const action: ActionFunction = async ({ request }) => {
 
   try {
     return await authenticator.authenticate('user-pass', request, {
-      successRedirect: '/protected',
+      successRedirect: '/home',
       throwOnError: true,
       context: { formData },
     })
