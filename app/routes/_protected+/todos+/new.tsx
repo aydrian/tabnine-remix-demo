@@ -41,13 +41,13 @@ export const action = async ({ request }: ActionFunctionArgs) => {
 
   const { title, description } = submission.value
 
-  // await prisma.todo.create({
-  //   data: {
-  //     title,
-  //     description,
-  //     userId: user.id,
-  //   },
-  // })
+  await prisma.todo.create({
+    data: {
+      title,
+      description,
+      userId: user.id,
+    },
+  })
 
   return redirect('/todos')
 }

@@ -13,14 +13,13 @@ export async function loader({ request }: LoaderFunctionArgs) {
   const user = await requireAuth(request)
 
   // Select all todos for the authenticated user
-  // const todos = await prisma.todo.findMany({
-  //   where: { userId: user.id },
-  //   orderBy: [{ completed: 'asc' }, { createdAt: 'desc' }],
-  //   include: {
-  //     categories: true,
-  //   },
-  // })
-  const todos = []
+  const todos = await prisma.todo.findMany({
+    where: { userId: user.id },
+    orderBy: [{ completed: 'asc' }, { createdAt: 'desc' }],
+    include: {
+      categories: true,
+    },
+  })
 
   return json({ user, todos })
 }
@@ -30,10 +29,10 @@ export const action = async ({ request }: ActionFunctionArgs) => {
   const id = parseInt(formData.get('id') as string)
   const completed = formData.get('completed') === 'true'
 
-  // await prisma.todo.update({
-  //   where: { id },
-  //   data: { completed },
-  // })
+  await prisma.todo.update({
+    where: { id },
+    data: { completed },
+  })
 
   return null
 }
@@ -46,16 +45,20 @@ export default function Todos() {
         {user.name}'s Todo List
       </h1>
       <ul className="space-y-2">
-        {todos.map(todo => (
-          <TodoItem
-            key={todo.id}
-            todo={{
-              ...todo,
-              createdAt: new Date(todo.createdAt),
-              updatedAt: new Date(todo.updatedAt),
-            }}
-          />
-        ))}
+        {todos.length > 0 ? (
+          todos.map(todo => (
+            <TodoItem
+              key={todo.id}
+              todo={{
+                ...todo,
+                createdAt: new Date(todo.createdAt),
+                updatedAt: new Date(todo.updatedAt),
+              }}
+            />
+          ))
+        ) : (
+          <li className="text-center text-sm text-gray-500">No todos found.</li>
+        )}
       </ul>
       <Button asChild className="w-full">
         <Link to="/todos/new">Add Item</Link>
