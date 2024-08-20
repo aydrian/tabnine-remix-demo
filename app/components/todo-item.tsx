@@ -48,7 +48,7 @@ export default function TodoItem({ todo }: TodoItemProps) {
           {todo.description && (
             <p className="mt-1 text-sm text-gray-500">{todo.description}</p>
           )}
-          {todo.categories.length > 0 && (
+          {todo.categories?.length > 0 && (
             <div className="mt-2 flex flex-wrap gap-2">
               {todo.categories.map(category => (
                 <Badge key={category.name} variant="secondary">
