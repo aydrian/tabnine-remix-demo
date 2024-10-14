@@ -12,6 +12,7 @@ export default function PlinkoGame() {
     { id: string; position: [number, number, number] }[]
   >([])
   const [discX, setDiscX] = useState(0)
+  const [resetKey, setResetKey] = useState(0)
 
   const handleScore = (points: number) => {
     setScore(prevScore => {
@@ -30,6 +31,13 @@ export default function PlinkoGame() {
       return [...prev, newDisc]
     })
   }, [discX])
+
+  const restartGame = () => {
+    setScore(0)
+    setDiscs([])
+    setDiscX(0)
+    setResetKey(prev => prev + 1) // Increment the reset key
+  }
 
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
@@ -54,6 +62,12 @@ export default function PlinkoGame() {
         <h1 className="mb-2 text-2xl font-bold">Plinko Game</h1>
         <div className="flex items-center justify-between">
           <div className="text-lg font-semibold">Score: {score}</div>
+          <button
+            onClick={restartGame}
+            className="rounded bg-blue-500 px-4 py-2 font-bold text-white hover:bg-blue-700"
+          >
+            Restart Game
+          </button>
         </div>
         <div className="inset-0 flex items-center justify-center">
           <p className="text-xl text-blue-800">
@@ -65,7 +79,7 @@ export default function PlinkoGame() {
         <Canvas>
           <ambientLight intensity={0.5} />
           <pointLight position={[10, 10, 10]} />
-          <PlinkoBoard onScore={handleScore} discs={discs} />
+          <PlinkoBoard key={resetKey} onScore={handleScore} discs={discs} />
           <mesh position={[discX, 2.5, 0]}>
             <sphereGeometry args={[0.1, 32, 32]} />
             <meshStandardMaterial color="red" opacity={0.5} transparent />
