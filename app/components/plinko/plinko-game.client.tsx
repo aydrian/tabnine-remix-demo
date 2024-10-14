@@ -29,7 +29,7 @@ export default function PlinkoGame() {
       }
       return [...prev, newDisc]
     })
-  }, [discX]) // Add discX as a dependency
+  }, [discX])
 
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {

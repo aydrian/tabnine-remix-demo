@@ -1,10 +1,4 @@
-import {
-  Physics,
-  useCylinder,
-  useBox,
-  usePlane,
-  useSphere,
-} from '@react-three/cannon'
+import { Physics, useCylinder, useBox, useSphere } from '@react-three/cannon'
 import { Text } from '@react-three/drei'
 import { useFrame } from '@react-three/fiber'
 import { useState, useEffect, useRef } from 'react'
@@ -35,19 +29,27 @@ const Disc = ({
   position: [number, number, number]
   id: string
 }) => {
-  const [ref, api] = useSphere<Mesh>(() => ({
-    mass: 1,
-    args: [0.1],
-    position,
-    collisionFilterGroup: 2,
-    collisionFilterMask: 1 | 2,
-    velocity: [0, 0, 0], // Initialize with zero velocity
-    linearDamping: 0.5,
-    material: {
-      restitution: 0.7,
-    },
-    userData: { id },
-  }))
+  const [ref, api] = useSphere<Mesh>(
+    () => ({
+      mass: 1,
+      args: [0.1],
+      position,
+      collisionFilterGroup: 2,
+      collisionFilterMask: 1 | 2,
+      velocity: [0, 0, 0],
+      linearDamping: 0.5,
+      material: {
+        restitution: 0.7,
+      },
+    }),
+    useRef<Mesh>(null),
+  )
+
+  useEffect(() => {
+    if (ref.current) {
+      ref.current.userData = { id, type: 'disc', api }
+    }
+  }, [id, api, ref])
 
   const velocity = useRef([0, 0, 0])
   useEffect(() => {
@@ -56,13 +58,10 @@ const Disc = ({
 
   useFrame(() => {
     api.position.subscribe(p => {
-      if (p[1] < -5) {
+      if (p && p[1] < -5) {
         api.position.set(1000, 1000, 1000)
       }
     })
-
-    // Remove the horizontal force application
-    // api.applyForce([0, -1, 0], [0, 0, 0])
 
     const maxVelocity = 5
     const currentVelocity = new Vector3(...velocity.current)
@@ -77,6 +76,65 @@ const Disc = ({
       <sphereGeometry args={[0.1, 32, 32]} />
       <meshStandardMaterial color="red" />
     </mesh>
+  )
+}
+
+const Bucket = ({
+  position,
+  onScore,
+  score,
+  points,
+}: {
+  position: [number, number, number]
+  onScore: (discId: string) => void
+  score: number
+  points: number
+}) => {
+  const [ref] = useBox<Mesh>(() => ({
+    type: 'Static',
+    args: [0.45, 0.5, 0.2],
+    position,
+    collisionFilterGroup: 1,
+    collisionFilterMask: 2,
+    onCollide: e => {
+      if (e.body.userData && e.body.userData.type === 'disc') {
+        const discId = e.body.userData.id
+        const discApi = e.body.userData.api
+        onScore(discId)
+        discApi.position.set(1000, 1000, 1000) // Remove disc
+      }
+    },
+  }))
+
+  return (
+    <group>
+      <mesh ref={ref}>
+        <boxGeometry args={[0.45, 0.5, 0.2]} />
+        <meshStandardMaterial color="blue" />
+      </mesh>
+      <mesh position={[position[0], position[1], position[2] + 0.101]}>
+        <planeGeometry args={[0.45, 0.5]} />
+        <meshStandardMaterial color="red" />
+      </mesh>
+      <Text
+        position={[position[0], position[1] + 0.1, position[2] + 0.102]}
+        fontSize={0.15}
+        color="white"
+        anchorX="center"
+        anchorY="middle"
+      >
+        {score}
+      </Text>
+      <Text
+        position={[position[0], position[1] - 0.1, position[2] + 0.102]}
+        fontSize={0.15}
+        color="white"
+        anchorX="center"
+        anchorY="middle"
+      >
+        {points}pts
+      </Text>
+    </group>
   )
 }
 
@@ -104,31 +162,6 @@ const Wall = ({
   )
 }
 
-const ScorePlane = ({
-  position,
-  onCollide,
-}: {
-  position: [number, number, number]
-  onCollide: (discId: string) => void
-}) => {
-  const scoredDiscs = useRef(new Set<string>())
-
-  usePlane(() => ({
-    position,
-    rotation: [-Math.PI / 2, 0, 0],
-    collisionFilterGroup: 1,
-    collisionFilterMask: 2,
-    onCollide: collision => {
-      const discId = collision.body.userData.id
-      if (!scoredDiscs.current.has(discId)) {
-        scoredDiscs.current.add(discId)
-        onCollide(discId)
-      }
-    },
-  }))
-  return null
-}
-
 interface PlinkoProps {
   onScore: (score: number) => void
   discs: { id: string; position: [number, number, number] }[]
@@ -136,7 +169,10 @@ interface PlinkoProps {
 
 export const PlinkoBoard = ({ onScore, discs }: PlinkoProps) => {
   const [pegs, setPegs] = useState<{ position: [number, number, number] }[]>([])
-  const [scoredDiscs, setScoredDiscs] = useState(new Set<string>())
+  const [scores, setScores] = useState<number[]>(Array(9).fill(0))
+  const bucketPoints = [1, 2, 3, 4, 5, 4, 3, 2, 1] // Define points for each bucket
+  const bucketWidth = 4.5 / 9 // Width of each bucket
+  const totalBuckets = 9
 
   useEffect(() => {
     const pegRows = 8
@@ -159,6 +195,15 @@ export const PlinkoBoard = ({ onScore, discs }: PlinkoProps) => {
     console.log('Pegs initialized:', newPegs.length)
   }, [])
 
+  const handleBucketScore = (bucketIndex: number) => {
+    setScores(prevScores => {
+      const newScores = [...prevScores]
+      newScores[bucketIndex]++
+      onScore(bucketIndex + 1)
+      return newScores
+    })
+  }
+
   return (
     <Physics
       gravity={[0, -9.81, 0]}
@@ -169,8 +214,8 @@ export const PlinkoBoard = ({ onScore, discs }: PlinkoProps) => {
     >
       <group>
         {/* Walls */}
-        <Wall position={[-2.25, 0, 0]} size={[0.1, 5.25, 0.2]} />
-        <Wall position={[2.25, 0, 0]} size={[0.1, 5.25, 0.2]} />
+        <Wall position={[-2.25, 0, 0]} size={[0.1, 6, 0.2]} />
+        <Wall position={[2.25, 0, 0]} size={[0.1, 6, 0.2]} />
 
         {/* Pegs */}
         {pegs.map((peg, index) => (
@@ -182,34 +227,19 @@ export const PlinkoBoard = ({ onScore, discs }: PlinkoProps) => {
           <Disc key={disc.id} id={disc.id} position={disc.position} />
         ))}
 
-        {/* Scoring planes */}
-        {Array.from({ length: 9 }, (_, i) => (
-          <ScorePlane
-            key={i}
-            position={[(i - 4) * 0.5, -2.45, 0]}
-            onCollide={discId => {
-              if (!scoredDiscs.has(discId)) {
-                setScoredDiscs(prev => new Set(prev).add(discId))
-                onScore(i + 1)
-                console.log('Disc reached bottom. Score:', i + 1)
-              }
-            }}
-          />
-        ))}
-
-        {/* Score numbers */}
-        {Array.from({ length: 9 }, (_, i) => (
-          <Text
-            key={i}
-            position={[(i - 4) * 0.5, -2.5, 0]}
-            fontSize={0.2}
-            color="white"
-            anchorX="center"
-            anchorY="middle"
-          >
-            {i + 1}
-          </Text>
-        ))}
+        {/* Buckets */}
+        {Array.from({ length: totalBuckets }, (_, i) => {
+          const x = (i - (totalBuckets - 1) / 2) * bucketWidth
+          return (
+            <Bucket
+              key={`bucket-${i}`}
+              position={[x, -2.75, 0]}
+              onScore={() => handleBucketScore(i)}
+              score={scores[i]}
+              points={bucketPoints[i]}
+            />
+          )
+        })}
       </group>
     </Physics>
   )
