@@ -171,25 +171,23 @@ export const PlinkoBoard = ({ onScore, discs }: PlinkoProps) => {
   const [pegs, setPegs] = useState<{ position: [number, number, number] }[]>([])
   const [scores, setScores] = useState<number[]>(Array(9).fill(0))
   const bucketPoints = [1, 2, 3, 4, 5, 4, 3, 2, 1] // Define points for each bucket
-  const bucketWidth = 4.5 / 9 // Width of each bucket
-  const totalBuckets = 9
+  const bucketWidth = 4.5 / bucketPoints.length // Width of each bucket
 
   useEffect(() => {
     const pegRows = 8
     const pegsPerRow = 9
-    const newPegs: { position: [number, number, number] }[] = []
-
-    for (let row = 0; row < pegRows; row++) {
-      for (
-        let col = 0;
-        col < (row % 2 === 0 ? pegsPerRow : pegsPerRow - 1);
-        col++
-      ) {
-        const x = (col - (pegsPerRow - 1) / 2 + (row % 2 === 0 ? 0 : 0.5)) * 0.5
-        const y = (row - pegRows / 2) * 0.5
-        newPegs.push({ position: [x, y, 0] })
-      }
-    }
+    const newPegs = Array.from({ length: pegRows }, (_, row) =>
+      Array.from(
+        { length: row % 2 === 0 ? pegsPerRow : pegsPerRow - 1 },
+        (_, col) => ({
+          position: [
+            (col - (pegsPerRow - 1) / 2 + (row % 2 === 0 ? 0 : 0.5)) * 0.5,
+            (row - pegRows / 2) * 0.5,
+            0,
+          ] as [number, number, number],
+        }),
+      ),
+    ).flat()
 
     setPegs(newPegs)
     console.log('Pegs initialized:', newPegs.length)
@@ -228,18 +226,19 @@ export const PlinkoBoard = ({ onScore, discs }: PlinkoProps) => {
         ))}
 
         {/* Buckets */}
-        {Array.from({ length: totalBuckets }, (_, i) => {
-          const x = (i - (totalBuckets - 1) / 2) * bucketWidth
-          return (
-            <Bucket
-              key={`bucket-${i}`}
-              position={[x, -2.75, 0]}
-              onScore={() => handleBucketScore(i)}
-              score={scores[i]}
-              points={bucketPoints[i]}
-            />
-          )
-        })}
+        {bucketPoints.map((points, i) => (
+          <Bucket
+            key={`bucket-${i}`}
+            position={[
+              (i - (bucketPoints.length - 1) / 2) * bucketWidth,
+              -2.75,
+              0,
+            ]}
+            onScore={() => handleBucketScore(i)}
+            score={scores[i]}
+            points={points}
+          />
+        ))}
       </group>
     </Physics>
   )
